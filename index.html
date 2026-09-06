@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reddit Reader</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-top">
+        <h1>Reddit Reader</h1>
+      </div>
+      
+      <form id="search-form" class="search-form">
+        <input 
+          type="text" 
+          id="search-input" 
+          placeholder="Search topics, queries, or r/subreddit..." 
+          required 
+          autocomplete="off"
+        >
+        <select id="sort-select">
+          <option value="relevance">Relevance</option>
+          <option value="top">Top</option>
+          <option value="new">New</option>
+          <option value="comments">Most Comments</option>
+        </select>
+        <button type="submit">Search</button>
+      </form>
+
+      <div class="topics-bar" id="topics-bar">
+        <span class="topics-label">Explore:</span>
+        <button class="chip" data-query="webdev">r/webdev</button>
+        <button class="chip" data-query="Artificial Intelligence">AI News</button>
+        <button class="chip" data-query="AskReddit">r/AskReddit</button>
+        <button class="chip" data-query="Productivity Tips">Productivity</button>
+        <button class="chip" data-query="Technology">Technology</button>
+        <button class="chip" data-query="Design">Design</button>
+      </div>
+    </header>
+
+    <main class="feed" id="feed">
+      <div class="state-message">Search a topic above or tap a recommended topic to begin.</div>
+    </main>
+    
+    <div id="loading-sentinel" class="loading-sentinel"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
