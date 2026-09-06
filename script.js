@@ -58,25 +58,28 @@ async function fetchRedditPosts() {
   }
 
   try {
-    let url = '';
+    let redditUrl = '';
     
-    // Support direct r/subreddit searching
+    // Support direct r/subreddit searching vs general search
     if (currentQuery.startsWith('r/')) {
       const sub = currentQuery.replace('r/', '');
-      url = `https://www.reddit.com/r/${encodeURIComponent(sub)}/${currentSort}.json?limit=15`;
+      redditUrl = `https://www.reddit.com/r/${encodeURIComponent(sub)}/${currentSort}.json?limit=15`;
     } else {
-      url = `https://www.reddit.com/search.json?q=${encodeURIComponent(currentQuery)}&sort=${currentSort}&limit=15`;
+      redditUrl = `https://www.reddit.com/search.json?q=${encodeURIComponent(currentQuery)}&sort=${currentSort}&limit=15`;
     }
 
     if (afterToken) {
-      url += `&after=${afterToken}`;
+      redditUrl += `&after=${afterToken}`;
     }
 
-    const response = await fetch(url);
+    // Bypass CORS and rate limiting using corsproxy.io
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(redditUrl)}`;
+
+    const response = await fetch(proxyUrl);
     if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
 
     const data = await response.json();
-    const posts = data.data.children;
+    const posts = data.data?.children || [];
 
     if (!afterToken) feed.innerHTML = ''; // Clear loading message
 
@@ -87,15 +90,15 @@ async function fetchRedditPosts() {
       return;
     }
 
-    afterToken = data.data.after;
+    afterToken = data.data?.after || null;
     if (!afterToken) hasMore = false;
 
     renderPosts(posts);
   } catch (error) {
     if (!afterToken) {
-      feed.innerHTML = `<div class="state-message">Error retrieving data. Reddit may be rate-limiting requests.</div>`;
+      feed.innerHTML = `<div class="state-message">Unable to fetch posts. Please check your connection or try another topic.</div>`;
     }
-    console.error(error);
+    console.error('Fetch error:', error);
   } finally {
     isLoading = false;
   }
@@ -156,6 +159,7 @@ function formatNumber(num) {
 }
 
 function escapeHtml(str) {
+  if (!str) return '';
   return str.replace(/[&<>"']/g, (m) => ({
     '&': '&amp;',
     '<': '&lt;',
@@ -165,7 +169,7 @@ function escapeHtml(str) {
   }[m]));
 }
 
-// Infinite scroll via Intersection Observer
+// Infinite scroll observer
 const observer = new IntersectionObserver((entries) => {
   if (entries[0].isIntersecting && currentQuery && !isLoading && hasMore) {
     fetchRedditPosts();
