@@ -1,0 +1,214 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #f4f5f7;
+  color: #1c1c1c;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.app {
+  width: 100%;
+  max-width: 720px;
+  background: #ffffff;
+  min-height: 100vh;
+  border-left: 1px solid #e1e4e8;
+  border-right: 1px solid #e1e4e8;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  padding: 16px;
+  border-bottom: 1px solid #e1e4e8;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.header-top h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ff4500;
+}
+
+.search-form {
+  display: flex;
+  gap: 8px;
+}
+
+.search-form input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.search-form input:focus, .search-form select:focus {
+  outline: none;
+  border-color: #0079d3;
+}
+
+.search-form select {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.search-form button {
+  padding: 10px 16px;
+  background-color: #0079d3;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.search-form button:hover {
+  background-color: #005bb5;
+}
+
+.topics-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.topics-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.topics-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #787c7e;
+}
+
+.chip {
+  background-color: #f0f2f5;
+  border: 1px solid #e1e4e8;
+  border-radius: 16px;
+  padding: 6px 12px;
+  font-size: 0.825rem;
+  font-weight: 500;
+  color: #1c1c1c;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.chip:hover {
+  background-color: #e2e6ea;
+}
+
+.chip.active {
+  background-color: #0079d3;
+  color: #ffffff;
+  border-color: #0079d3;
+}
+
+.feed {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.post-card {
+  border: 1px solid #e1e4e8;
+  border-radius: 8px;
+  padding: 14px;
+  background: #fff;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.post-card:hover {
+  border-color: #898989;
+}
+
+.meta {
+  font-size: 0.8rem;
+  color: #787c7e;
+  display: flex;
+  gap: 6px;
+}
+
+.subreddit {
+  font-weight: 700;
+  color: #1c1c1c;
+}
+
+.title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.selftext {
+  font-size: 0.875rem;
+  color: #3c3c3c;
+  line-height: 1.4;
+  background: #f8f9fa;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border-left: 3px solid #0079d3;
+}
+
+.media-container {
+  margin-top: 4px;
+  max-height: 400px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #f0f0f0;
+}
+
+.media-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.footer {
+  font-size: 0.8rem;
+  color: #787c7e;
+  display: flex;
+  gap: 16px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.state-message {
+  text-align: center;
+  color: #787c7e;
+  padding: 40px 0;
+  font-size: 0.95rem;
+}
+
+.loading-sentinel {
+  height: 20px;
+  margin: 10px 0;
+}
