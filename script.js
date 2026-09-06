@@ -1,38 +1,32 @@
 const searchForm = document.getElementById('search-form');
 const searchInput = document.getElementById('search-input');
-const sortSelect = document.getElementById('sort-select');
 const topicsBar = document.getElementById('topics-bar');
 const feed = document.getElementById('feed');
-const loadingSentinel = document.getElementById('loading-sentinel');
-
-let currentQuery = '';
-let currentSort = 'relevance';
-let afterToken = null;
-let isLoading = false;
-let hasMore = true;
 
 searchForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const query = searchInput.value.trim();
   if (query) {
     clearActiveChips();
-    initiateSearch(query, sortSelect.value);
+    performSearch(query);
   }
 });
 
-topicsBar.addEventListener('click', (e) => {
-  if (e.target.classList.contains('chip')) {
-    clearActiveChips();
-    e.target.classList.add('active');
-    const query = e.target.getAttribute('data-query');
+// Event delegation for header chips & recommended grid cards
+document.addEventListener('click', (e) => {
+  const targetCard = e.target.closest('.topic-card');
+  const targetChip = e.target.closest('.chip');
+
+  if (targetCard) {
+    const query = targetCard.getAttribute('data-query');
     searchInput.value = query;
-    initiateSearch(query, sortSelect.value);
-  }
-});
-
-sortSelect.addEventListener('change', () => {
-  if (currentQuery) {
-    initiateSearch(currentQuery, sortSelect.value);
+    performSearch(query);
+  } else if (targetChip) {
+    clearActiveChips();
+    targetChip.classList.add('active');
+    const query = targetChip.getAttribute('data-query');
+    searchInput.value = query;
+    performSearch(query);
   }
 });
 
@@ -40,150 +34,113 @@ function clearActiveChips() {
   document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
 }
 
-function initiateSearch(query, sort) {
-  currentQuery = query;
-  currentSort = sort;
-  afterToken = null;
-  hasMore = true;
-  feed.innerHTML = '';
-  fetchRedditPosts();
+async function performSearch(query) {
+  feed.innerHTML = '<div class="state-message">Searching...</div>';
+
+  try {
+    let results = await fetchDuckDuckGo(query);
+
+    if (results.length === 0) {
+      results = await fetchWikipedia(query);
+    }
+
+    renderResults(results);
+  } catch (error) {
+    console.error('Search error:', error);
+    feed.innerHTML = '<div class="state-message">An error occurred while fetching results. Please try again.</div>';
+  }
 }
 
-// JSONP fetch helper to cleanly bypass browser CORS/403 blocks
-function fetchJSONP(url) {
-  return new Promise((resolve, reject) => {
-    const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
+// Fetch via DuckDuckGo JSONP (bypasses CORS completely)
+function fetchDuckDuckGo(query) {
+  return new Promise((resolve) => {
+    const callbackName = 'ddg_cb_' + Math.round(100000 * Math.random());
     const script = document.createElement('script');
 
     window[callbackName] = (data) => {
       delete window[callbackName];
       document.body.removeChild(script);
-      resolve(data);
+
+      const items = [];
+
+      if (data.AbstractText && data.AbstractURL) {
+        items.push({
+          title: data.Heading || query,
+          url: data.AbstractURL,
+          snippet: data.AbstractText
+        });
+      }
+
+      if (data.RelatedTopics && data.RelatedTopics.length > 0) {
+        data.RelatedTopics.forEach(topic => {
+          if (topic.Text && topic.FirstURL) {
+            items.push({
+              title: topic.Text.split(' - ')[0] || topic.Text,
+              url: topic.FirstURL,
+              snippet: topic.Text
+            });
+          }
+        });
+      }
+
+      resolve(items);
     };
 
     script.onerror = () => {
       delete window[callbackName];
-      document.body.removeChild(script);
-      reject(new Error('JSONP Request Failed'));
+      if (script.parentNode) document.body.removeChild(script);
+      resolve([]);
     };
 
-    const delimiter = url.includes('?') ? '&' : '?';
-    script.src = `${url}${delimiter}jsonp=${callbackName}`;
+    script.src = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&callback=${callbackName}`;
     document.body.appendChild(script);
   });
 }
 
-async function fetchRedditPosts() {
-  if (isLoading || !hasMore) return;
-  isLoading = true;
+// Wikipedia API Fallback
+async function fetchWikipedia(query) {
+  const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&origin=*`;
+  const response = await fetch(url);
+  const data = await response.json();
 
-  if (!afterToken) {
-    feed.innerHTML = '<div class="state-message">Loading results...</div>';
-  }
+  if (!data.query || !data.query.search) return [];
 
-  try {
-    let redditUrl = '';
-
-    if (currentQuery.startsWith('r/')) {
-      const sub = currentQuery.replace('r/', '');
-      redditUrl = `https://www.reddit.com/r/${encodeURIComponent(sub)}/${currentSort}.json?limit=15`;
-    } else {
-      redditUrl = `https://www.reddit.com/search.json?q=${encodeURIComponent(currentQuery)}&sort=${currentSort}&limit=15`;
-    }
-
-    if (afterToken) {
-      redditUrl += `&after=${afterToken}`;
-    }
-
-    // Attempt JSONP request
-    let data;
-    try {
-      data = await fetchJSONP(redditUrl);
-    } catch (err) {
-      // Secondary fallback via open proxy if JSONP is blocked locally
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(redditUrl)}`;
-      const res = await fetch(proxyUrl);
-      const wrapper = await res.json();
-      data = JSON.parse(wrapper.contents);
-    }
-
-    const posts = data?.data?.children || [];
-
-    if (!afterToken) feed.innerHTML = ''; 
-
-    if (posts.length === 0 && !afterToken) {
-      feed.innerHTML = '<div class="state-message">No results found. Try another query.</div>';
-      hasMore = false;
-      isLoading = false;
-      return;
-    }
-
-    afterToken = data?.data?.after || null;
-    if (!afterToken) hasMore = false;
-
-    renderPosts(posts);
-  } catch (error) {
-    if (!afterToken) {
-      feed.innerHTML = `<div class="state-message">Error connecting to Reddit. Please try another search term or check back in a moment.</div>`;
-    }
-    console.error('Fetch error:', error);
-  } finally {
-    isLoading = false;
-  }
+  return data.query.search.map(item => ({
+    title: item.title,
+    url: `https://en.wikipedia.org/?curid=${item.pageid}`,
+    snippet: stripHtml(item.snippet) + '...'
+  }));
 }
 
-function renderPosts(posts) {
-  posts.forEach(({ data }) => {
-    const postEl = document.createElement('a');
-    postEl.className = 'post-card';
-    postEl.href = `https://reddit.com${data.permalink}`;
-    postEl.target = '_blank';
-    postEl.rel = 'noopener noreferrer';
+function renderResults(results) {
+  feed.innerHTML = '';
 
-    const mediaHtml = getMediaHtml(data);
-    const textPreviewHtml = getTextPreviewHtml(data);
+  if (results.length === 0) {
+    feed.innerHTML = '<div class="state-message">No results found. Try another term.</div>';
+    return;
+  }
 
-    postEl.innerHTML = `
-      <div class="meta">
-        <span class="subreddit">r/${data.subreddit}</span>
-        <span>•</span>
-        <span>u/${data.author}</span>
-      </div>
-      <h2 class="title">${escapeHtml(data.title)}</h2>
-      ${textPreviewHtml}
-      ${mediaHtml}
-      <div class="footer">
-        <span>▲ ${formatNumber(data.score)} points</span>
-        <span>💬 ${formatNumber(data.num_comments)} comments</span>
-      </div>
+  results.forEach(item => {
+    const card = document.createElement('a');
+    card.className = 'result-card';
+    card.href = item.url;
+    card.target = '_blank';
+    card.rel = 'noopener noreferrer';
+
+    card.innerHTML = `
+      <div class="result-url">${escapeHtml(item.url)}</div>
+      <h2 class="result-title">${escapeHtml(item.title)}</h2>
+      <div class="result-snippet">${escapeHtml(item.snippet)}</div>
     `;
 
-    feed.appendChild(postEl);
+    feed.appendChild(card);
   });
 }
 
-function getTextPreviewHtml(data) {
-  if (data.selftext && data.selftext.trim().length > 0) {
-    const truncated = data.selftext.length > 200 ? data.selftext.substring(0, 200) + '...' : data.selftext;
-    return `<div class="selftext">${escapeHtml(truncated)}</div>`;
-  }
-  return '';
-}
-
-function getMediaHtml(data) {
-  const isDirectImage = /\.(jpg|jpeg|png|gif)$/i.test(data.url);
-  if (isDirectImage) {
-    return `
-      <div class="media-container">
-        <img src="${data.url}" alt="" loading="lazy" onError="this.parentNode.remove()">
-      </div>
-    `;
-  }
-  return '';
-}
-
-function formatNumber(num) {
-  return num >= 1000 ? (num / 1000).toFixed(1) + 'k' : num;
+function stripHtml(html) {
+  const tmp = document.createElement('DIV');
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || '';
 }
 
 function escapeHtml(str) {
@@ -196,12 +153,3 @@ function escapeHtml(str) {
     "'": '&#039;'
   }[m]));
 }
-
-// Infinite scroll observer
-const observer = new IntersectionObserver((entries) => {
-  if (entries[0].isIntersecting && currentQuery && !isLoading && hasMore) {
-    fetchRedditPosts();
-  }
-}, { rootMargin: '200px' });
-
-observer.observe(loadingSentinel);
