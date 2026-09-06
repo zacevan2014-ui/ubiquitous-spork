@@ -3,49 +3,72 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reddit Reader</title>
+  <title>Clean Search</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="app">
     <header class="header">
-      <div class="header-top">
-        <h1>Reddit Reader</h1>
+      <div class="brand">
+        <h1>Search</h1>
       </div>
-      
+
       <form id="search-form" class="search-form">
-        <input 
-          type="text" 
-          id="search-input" 
-          placeholder="Search topics, queries, or r/subreddit..." 
-          required 
-          autocomplete="off"
-        >
-        <select id="sort-select">
-          <option value="relevance">Relevance</option>
-          <option value="top">Top</option>
-          <option value="new">New</option>
-          <option value="comments">Most Comments</option>
-        </select>
-        <button type="submit">Search</button>
+        <div class="input-wrapper">
+          <input 
+            type="text" 
+            id="search-input" 
+            placeholder="Search anything..." 
+            required 
+            autocomplete="off"
+          >
+          <button type="submit">Search</button>
+        </div>
       </form>
 
       <div class="topics-bar" id="topics-bar">
-        <span class="topics-label">Explore:</span>
-        <button class="chip" data-query="webdev">r/webdev</button>
-        <button class="chip" data-query="Artificial Intelligence">AI News</button>
-        <button class="chip" data-query="AskReddit">r/AskReddit</button>
-        <button class="chip" data-query="Productivity Tips">Productivity</button>
-        <button class="chip" data-query="Technology">Technology</button>
-        <button class="chip" data-query="Design">Design</button>
+        <span class="topics-label">Trending:</span>
+        <button class="chip" data-query="Artificial Intelligence">AI</button>
+        <button class="chip" data-query="Quantum Computing">Quantum Computing</button>
+        <button class="chip" data-query="Web Development">Web Dev</button>
+        <button class="chip" data-query="Space Exploration">Space</button>
+        <button class="chip" data-query="Design Systems">Design</button>
       </div>
     </header>
 
     <main class="feed" id="feed">
-      <div class="state-message">Search a topic above or tap a recommended topic to begin.</div>
+      <div class="home-recommended" id="home-recommended">
+        <h2>Recommended Topics</h2>
+        <p>Select a category to explore key information instantly:</p>
+        
+        <div class="cards-grid">
+          <div class="topic-card" data-query="Artificial Intelligence">
+            <h3>🤖 Artificial Intelligence</h3>
+            <p>Machine learning, neural networks, and modern AI models.</p>
+          </div>
+          <div class="topic-card" data-query="Web Development">
+            <h3>💻 Web Development</h3>
+            <p>Frontend frameworks, HTML5, CSS, and JavaScript standards.</p>
+          </div>
+          <div class="topic-card" data-query="Space Exploration">
+            <h3>🚀 Space Exploration</h3>
+            <p>Missions, astronomy, exoplanets, and space technology.</p>
+          </div>
+          <div class="topic-card" data-query="Quantum Computing">
+            <h3>⚛️ Quantum Computing</h3>
+            <p>Qubits, quantum mechanics applications, and supercomputing.</p>
+          </div>
+          <div class="topic-card" data-query="Cybersecurity">
+            <h3>🛡️ Cybersecurity</h3>
+            <p>Network security, encryption, ethical hacking, and privacy.</p>
+          </div>
+          <div class="topic-card" data-query="Climate Change Technology">
+            <h3>🌱 Green Tech</h3>
+            <p>Renewable energy, sustainability, and climate innovation.</p>
+          </div>
+        </div>
+      </div>
     </main>
-    
-    <div id="loading-sentinel" class="loading-sentinel"></div>
   </div>
 
   <script src="script.js"></script>
