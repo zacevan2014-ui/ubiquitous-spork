@@ -49,6 +49,30 @@ function initiateSearch(query, sort) {
   fetchRedditPosts();
 }
 
+// JSONP fetch helper to cleanly bypass browser CORS/403 blocks
+function fetchJSONP(url) {
+  return new Promise((resolve, reject) => {
+    const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
+    const script = document.createElement('script');
+
+    window[callbackName] = (data) => {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      resolve(data);
+    };
+
+    script.onerror = () => {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      reject(new Error('JSONP Request Failed'));
+    };
+
+    const delimiter = url.includes('?') ? '&' : '?';
+    script.src = `${url}${delimiter}jsonp=${callbackName}`;
+    document.body.appendChild(script);
+  });
+}
+
 async function fetchRedditPosts() {
   if (isLoading || !hasMore) return;
   isLoading = true;
@@ -59,8 +83,7 @@ async function fetchRedditPosts() {
 
   try {
     let redditUrl = '';
-    
-    // Support direct r/subreddit searching vs general search
+
     if (currentQuery.startsWith('r/')) {
       const sub = currentQuery.replace('r/', '');
       redditUrl = `https://www.reddit.com/r/${encodeURIComponent(sub)}/${currentSort}.json?limit=15`;
@@ -72,31 +95,36 @@ async function fetchRedditPosts() {
       redditUrl += `&after=${afterToken}`;
     }
 
-    // Bypass CORS and rate limiting using corsproxy.io
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(redditUrl)}`;
+    // Attempt JSONP request
+    let data;
+    try {
+      data = await fetchJSONP(redditUrl);
+    } catch (err) {
+      // Secondary fallback via open proxy if JSONP is blocked locally
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(redditUrl)}`;
+      const res = await fetch(proxyUrl);
+      const wrapper = await res.json();
+      data = JSON.parse(wrapper.contents);
+    }
 
-    const response = await fetch(proxyUrl);
-    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+    const posts = data?.data?.children || [];
 
-    const data = await response.json();
-    const posts = data.data?.children || [];
-
-    if (!afterToken) feed.innerHTML = ''; // Clear loading message
+    if (!afterToken) feed.innerHTML = ''; 
 
     if (posts.length === 0 && !afterToken) {
-      feed.innerHTML = '<div class="state-message">No results found. Try another term.</div>';
+      feed.innerHTML = '<div class="state-message">No results found. Try another query.</div>';
       hasMore = false;
       isLoading = false;
       return;
     }
 
-    afterToken = data.data?.after || null;
+    afterToken = data?.data?.after || null;
     if (!afterToken) hasMore = false;
 
     renderPosts(posts);
   } catch (error) {
     if (!afterToken) {
-      feed.innerHTML = `<div class="state-message">Unable to fetch posts. Please check your connection or try another topic.</div>`;
+      feed.innerHTML = `<div class="state-message">Error connecting to Reddit. Please try another search term or check back in a moment.</div>`;
     }
     console.error('Fetch error:', error);
   } finally {
